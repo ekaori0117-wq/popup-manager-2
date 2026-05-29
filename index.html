@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POPUP 売上管理</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+      background: #faf9f7;
+      color: #2d2d2d;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #2d2d2d;
+      color: #fff;
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 1.3rem; font-weight: 700; letter-spacing: 0.05em; }
+    header span { font-size: 0.8rem; opacity: 0.5; }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 32px 20px; }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+    .card .label { font-size: 0.72rem; color: #999; margin-bottom: 6px; letter-spacing: 0.05em; text-transform: uppercase; }
+    .card .value { font-size: 1.6rem; font-weight: 700; color: #2d2d2d; }
+    .card .value span { font-size: 0.9rem; font-weight: 400; }
+
+    .actions { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+    .btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.8; }
+    .btn-primary { background: #2d2d2d; color: #fff; }
+    .btn-outline { background: #fff; color: #2d2d2d; border: 1.5px solid #ddd; }
+    .btn-danger { background: #fee2e2; color: #dc2626; border: none; }
+    .filter-wrap { margin-left: auto; }
+    .filter-wrap input {
+      padding: 8px 12px;
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      background: #fff;
+      width: 220px;
+    }
+
+    .table-wrap {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+      overflow-x: auto;
+    }
+    table { width: 100%; border-collapse: collapse; min-width: 900px; }
+    thead th {
+      background: #f4f4f2;
+      padding: 12px 14px;
+      text-align: left;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #888;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+    thead th:hover { background: #eee; }
+    tbody tr { border-top: 1px solid #f0f0ee; transition: background 0.1s; }
+    tbody tr:hover { background: #faf9f7; }
+    tbody td { padding: 13px 14px; font-size: 0.86rem; vertical-align: top; }
+
+    .location-cell { font-weight: 700; min-width: 120px; }
+    .date-cell { color: #555; white-space: nowrap; min-width: 150px; }
+    .days-badge {
+      display: inline-block;
+      background: #f0f0ee;
+      color: #555;
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .sales-cell { font-weight: 700; font-size: 1rem; white-space: nowrap; }
+    .avg-cell { color: #888; font-size: 0.82rem; white-space: nowrap; }
+    .setup-badge {
+      display: inline-block;
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .setup-前日 { background: #dbeafe; color: #1d4ed8; }
+    .setup-当日 { background: #dcfce7; color: #15803d; }
+    .setup-その他 { background: #f3f4f6; color: #555; }
+    .memo-cell { color: #666; font-size: 0.82rem; line-height: 1.6; min-width: 160px; max-width: 220px; }
+    .memo-cell .memo-label { font-size: 0.7rem; color: #aaa; font-weight: 700; margin-top: 6px; }
+    .memo-cell .memo-label:first-child { margin-top: 0; }
+    .action-cell { white-space: nowrap; }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: #aaa; }
+    .empty-state p { margin-top: 8px; font-size: 0.85rem; }
+
+    /* モーダル */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .overlay.open { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 560px;
+      max-height: 92vh;
+      overflow-y: auto;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+    }
+    .modal h2 { font-size: 1.1rem; margin-bottom: 24px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-group label { font-size: 0.75rem; font-weight: 700; color: #666; letter-spacing: 0.04em; }
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      padding: 9px 12px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-family: inherit;
+      transition: border-color 0.15s;
+      background: #fff;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus { outline: none; border-color: #2d2d2d; }
+    .form-group textarea { resize: vertical; min-height: 70px; }
+    .section-divider {
+      grid-column: 1 / -1;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #aaa;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding-top: 8px;
+      border-top: 1px solid #f0f0ee;
+      margin-top: 4px;
+    }
+    .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+    .sales-high { color: #059669; }
+    .sales-mid  { color: #d97706; }
+    .sales-low  { color: #dc2626; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>📦 POPUP 売上管理</h1>
+  <span>データはこのブラウザに保存されます</span>
+</header>
+
+<div class="container">
+
+  <div class="summary">
+    <div class="card">
+      <div class="label">総売上</div>
+      <div class="value" id="totalSales">¥0</div>
+    </div>
+    <div class="card">
+      <div class="label">開催回数</div>
+      <div class="value" id="totalEvents">0 <span>回</span></div>
+    </div>
+    <div class="card">
+      <div class="label">総出店日数</div>
+      <div class="value" id="totalDays">0 <span>日</span></div>
+    </div>
+    <div class="card">
+      <div class="label">1日あたり平均売上</div>
+      <div class="value" id="avgPerDay">¥0</div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-primary" onclick="openModal()">＋ POPUPを追加</button>
+    <button class="btn btn-outline" onclick="exportCSV()">CSV書き出し</button>
+    <div class="filter-wrap">
+      <input type="text" id="searchInput" placeholder="🔍 場所・備考で検索" oninput="renderTable()">
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th onclick="sortBy('location')">場所・イベント名 ↕</th>
+          <th onclick="sortBy('startDate')">開催期間 ↕</th>
+          <th onclick="sortBy('days')">日数 ↕</th>
+          <th onclick="sortBy('sales')">売上合計 ↕</th>
+          <th>1日平均</th>
+          <th>設営</th>
+          <th>客層 / 売れたもの / メモ</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div id="emptyState" class="empty-state" style="display:none;">
+      <div style="font-size:2rem;">🗂</div>
+      <p>まだデータがありません。「＋ POPUPを追加」から登録してみましょう！</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- モーダル -->
+<div class="overlay" id="overlay" onclick="closeOnOverlay(event)">
+  <div class="modal">
+    <h2 id="modalTitle">POPUPを追加</h2>
+    <div class="form-grid">
+
+      <div class="form-group full">
+        <label>場所・イベント名</label>
+        <input type="text" id="f_location" placeholder="例）渋谷ロフト / 〇〇マルシェ">
+      </div>
+
+      <div class="form-group">
+        <label>開始日</label>
+        <input type="date" id="f_startDate">
+      </div>
+      <div class="form-group">
+        <label>終了日</label>
+        <input type="date" id="f_endDate">
+      </div>
+
+      <div class="form-group">
+        <label>売上合計（円）</label>
+        <input type="number" id="f_sales" placeholder="例）158000" min="0">
+      </div>
+      <div class="form-group">
+        <label>出店日数</label>
+        <input type="number" id="f_days" placeholder="日付から自動計算" min="1">
+      </div>
+
+      <div class="section-divider">備考</div>
+
+      <div class="form-group">
+        <label>設営タイミング</label>
+        <select id="f_setup">
+          <option value="">未選択</option>
+          <option value="前日">前日</option>
+          <option value="当日">当日</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>客層（年齢・性別・雰囲気など）</label>
+        <input type="text" id="f_customer" placeholder="例）20〜30代女性が多め">
+      </div>
+
+      <div class="form-group full">
+        <label>売れたもの・売れなかったもの</label>
+        <textarea id="f_items" placeholder="例）ポーチとトートが特に売れた。アクセサリーは動かなかった。"></textarea>
+      </div>
+
+      <div class="form-group full">
+        <label>自由メモ</label>
+        <textarea id="f_memo" placeholder="例）雨だったけど思ったより客足あり。隣のブースとの距離が近くて動線が悪かった。"></textarea>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveEntry()">保存する</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const STORAGE_KEY = 'popup_data_v2';
+  let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  let editingId = null;
+  let sortKey = 'startDate';
+  let sortDir = -1;
+
+  function calcDays(start, end) {
+    if (!start || !end) return null;
+    const d = (new Date(end) - new Date(start)) / 86400000 + 1;
+    return d > 0 ? d : null;
+  }
+
+  function formatDate(d) {
+    if (!d) return '';
+    const [y, m, day] = d.split('-');
+    return `${y}/${m}/${day}`;
+  }
+
+  function formatYen(v) {
+    if (v == null || v === '') return '-';
+    return '¥' + Number(v).toLocaleString();
+  }
+
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function updateSummary() {
+    const total = data.reduce((s, r) => s + (Number(r.sales) || 0), 0);
+    const days  = data.reduce((s, r) => s + (Number(r.days)  || 0), 0);
+    document.getElementById('totalSales').textContent  = '¥' + total.toLocaleString();
+    document.getElementById('totalEvents').innerHTML   = data.length + ' <span>回</span>';
+    document.getElementById('totalDays').innerHTML     = days + ' <span>日</span>';
+    document.getElementById('avgPerDay').textContent   = days ? '¥' + Math.round(total / days).toLocaleString() : '¥0';
+  }
+
+  function renderTable() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    let rows = data.filter(r =>
+      [r.location, r.customer, r.items, r.memo].some(v => (v||'').toLowerCase().includes(q))
+    );
+
+    rows.sort((a, b) => {
+      let av = a[sortKey] ?? '', bv = b[sortKey] ?? '';
+      if (sortKey === 'sales' || sortKey === 'days') { av = Number(av)||0; bv = Number(bv)||0; }
+      return av < bv ? sortDir : av > bv ? -sortDir : 0;
+    });
+
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+    document.getElementById('emptyState').style.display = rows.length ? 'none' : 'block';
+
+    const maxSales = Math.max(...data.map(r => Number(r.sales)||0), 1);
+
+    rows.forEach(r => {
+      const sales = Number(r.sales) || 0;
+      const days  = Number(r.days)  || 0;
+      const avg   = days ? Math.round(sales / days) : null;
+      const ratio = sales / maxSales;
+      const cls   = ratio >= 0.7 ? 'sales-high' : ratio >= 0.35 ? 'sales-mid' : 'sales-low';
+
+      const dateStr = r.startDate && r.endDate && r.startDate !== r.endDate
+        ? `${formatDate(r.startDate)} 〜<br>${formatDate(r.endDate)}`
+        : formatDate(r.startDate) || '-';
+
+      const setupBadge = r.setup
+        ? `<span class="setup-badge setup-${esc(r.setup)}">${esc(r.setup)}</span>`
+        : '-';
+
+      // 客層・売れたもの・メモをまとめて表示
+      let memoHtml = '';
+      if (r.customer) memoHtml += `<div class="memo-label">客層</div><div>${esc(r.customer)}</div>`;
+      if (r.items)    memoHtml += `<div class="memo-label">売れたもの</div><div>${esc(r.items).replace(/\n/g,'<br>')}</div>`;
+      if (r.memo)     memoHtml += `<div class="memo-label">メモ</div><div>${esc(r.memo).replace(/\n/g,'<br>')}</div>`;
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="location-cell">${esc(r.location || '-')}</td>
+        <td class="date-cell">${dateStr}</td>
+        <td><span class="days-badge">${days || '-'} 日</span></td>
+        <td class="sales-cell ${cls}">${formatYen(r.sales)}</td>
+        <td class="avg-cell">${avg != null ? formatYen(avg) + '/日' : '-'}</td>
+        <td>${setupBadge}</td>
+        <td class="memo-cell">${memoHtml || '-'}</td>
+        <td class="action-cell">
+          <button class="btn btn-outline" style="padding:5px 12px;font-size:0.78rem;" onclick="editEntry('${r.id}')">編集</button>
+          <button class="btn btn-danger" style="padding:5px 10px;font-size:0.78rem;margin-left:4px;" onclick="deleteEntry('${r.id}')">削除</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function sortBy(key) {
+    if (sortKey === key) sortDir *= -1;
+    else { sortKey = key; sortDir = -1; }
+    renderTable();
+  }
+
+  function openModal(id) {
+    editingId = id || null;
+    document.getElementById('modalTitle').textContent = id ? 'POPUPを編集' : 'POPUPを追加';
+    const fields = ['f_location','f_startDate','f_endDate','f_sales','f_days','f_setup','f_customer','f_items','f_memo'];
+    if (id) {
+      const r = data.find(d => d.id === id);
+      document.getElementById('f_location').value = r.location || '';
+      document.getElementById('f_startDate').value = r.startDate || '';
+      document.getElementById('f_endDate').value   = r.endDate   || '';
+      document.getElementById('f_sales').value     = r.sales     || '';
+      document.getElementById('f_days').value      = r.days      || '';
+      document.getElementById('f_setup').value     = r.setup     || '';
+      document.getElementById('f_customer').value  = r.customer  || '';
+      document.getElementById('f_items').value     = r.items     || '';
+      document.getElementById('f_memo').value      = r.memo      || '';
+    } else {
+      fields.forEach(i => { document.getElementById(i).value = ''; });
+    }
+    document.getElementById('overlay').classList.add('open');
+  }
+
+  function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+  function closeOnOverlay(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
+
+  ['f_startDate','f_endDate'].forEach(id => {
+    document.getElementById(id).addEventListener('change', () => {
+      const s = document.getElementById('f_startDate').value;
+      const e = document.getElementById('f_endDate').value;
+      const d = calcDays(s, e);
+      if (d) document.getElementById('f_days').value = d;
+    });
+  });
+
+  function saveEntry() {
+    const location  = document.getElementById('f_location').value.trim();
+    const startDate = document.getElementById('f_startDate').value;
+    const endDate   = document.getElementById('f_endDate').value;
+    const sales     = document.getElementById('f_sales').value;
+    const days      = document.getElementById('f_days').value || calcDays(startDate, endDate) || '';
+    const setup     = document.getElementById('f_setup').value;
+    const customer  = document.getElementById('f_customer').value.trim();
+    const items     = document.getElementById('f_items').value.trim();
+    const memo      = document.getElementById('f_memo').value.trim();
+
+    if (!location) { alert('場所・イベント名を入力してください'); return; }
+
+    const entry = { location, startDate, endDate, sales, days, setup, customer, items, memo };
+    if (editingId) {
+      Object.assign(data.find(d => d.id === editingId), entry);
+    } else {
+      data.push({ id: Date.now().toString(36), ...entry });
+    }
+    save();
+    closeModal();
+  }
+
+  function editEntry(id) { openModal(id); }
+
+  function deleteEntry(id) {
+    const r = data.find(d => d.id === id);
+    if (!confirm(`「${r.location || 'このPOPUP'}」を削除しますか？`)) return;
+    data = data.filter(d => d.id !== id);
+    save();
+  }
+
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    updateSummary();
+    renderTable();
+  }
+
+  function exportCSV() {
+    const header = ['場所・イベント名','開始日','終了日','日数','売上合計','1日平均','設営','客層','売れたもの','自由メモ'];
+    const rows = data.map(r => {
+      const days  = Number(r.days)  || 0;
+      const sales = Number(r.sales) || 0;
+      const avg   = days ? Math.round(sales / days) : '';
+      return [r.location, r.startDate, r.endDate, r.days, r.sales, avg, r.setup, r.customer, r.items, r.memo]
+        .map(v => `"${String(v||'').replace(/"/g,'""')}"`).join(',');
+    });
+    const csv = '﻿' + [header.join(','), ...rows].join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = 'popup_sales.csv';
+    a.click();
+  }
+
+  updateSummary();
+  renderTable();
+</script>
+</body>
+</html>

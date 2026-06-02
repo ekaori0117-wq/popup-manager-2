@@ -213,7 +213,7 @@
 
   <div class="actions">
     <button class="btn btn-primary" onclick="openModal()" id="addBtn">＋ POPUPを追加</button>
-    <button class="btn btn-outline" onclick="exportCSV()">CSV書き出し</button>
+
     <div class="filter-wrap">
       <input type="text" id="searchInput" placeholder="🔍 場所・備考で検索" oninput="renderTable()">
     </div>
@@ -225,7 +225,8 @@
     <table>
       <thead>
         <tr>
-          <th onclick="sortBy('location')">場所・イベント名 ↕</th>
+          <th onclick="sortBy('eventName')">イベント名 ↕</th>
+          <th onclick="sortBy('location')">場所 ↕</th>
           <th onclick="sortBy('startDate')">開催期間 ↕</th>
           <th onclick="sortBy('days')">日数 ↕</th>
           <th onclick="sortBy('sales')">売上合計 ↕</th>
@@ -254,9 +255,13 @@
     <h2 id="modalTitle">POPUPを追加</h2>
     <div class="form-grid">
 
-      <div class="form-group full">
-        <label>場所・イベント名</label>
-        <input type="text" id="f_location" placeholder="例）渋谷ロフト / 〇〇マルシェ">
+      <div class="form-group">
+        <label>イベント名</label>
+        <input type="text" id="f_eventName" placeholder="例）〇〇マルシェ">
+      </div>
+      <div class="form-group">
+        <label>場所</label>
+        <input type="text" id="f_location" placeholder="例）渋谷ロフト B1F">
       </div>
 
       <div class="form-group">
@@ -304,6 +309,7 @@
       </div>
 
     </div>
+    <div style="font-size:0.75rem;color:#aaa;margin-top:16px;">📎 請求書は保存後に一覧からアップロードできます</div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal()">キャンセル</button>
       <button class="btn btn-primary" id="saveBtn" onclick="saveEntry()">保存する</button>
@@ -386,7 +392,7 @@
   function renderTable() {
     const q = document.getElementById('searchInput').value.toLowerCase();
     let rows = data.filter(r =>
-      [r.location, r.customer, r.items, r.memo].some(v => (v||'').toLowerCase().includes(q))
+      [r.eventName, r.location, r.customer, r.items, r.memo].some(v => (v||'').toLowerCase().includes(q))
     );
 
     rows.sort((a, b) => {
@@ -424,7 +430,8 @@
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td class="location-cell">${esc(r.location || '-')}</td>
+        <td class="location-cell">${esc(r.eventName || '-')}</td>
+        <td style="color:#555;">${esc(r.location || '-')}</td>
         <td class="date-cell">${dateStr}</td>
         <td><span class="days-badge">${days || '-'} 日</span></td>
         <td class="sales-cell ${cls}">${formatYen(r.sales)}</td>
@@ -456,9 +463,10 @@
   function openModal(id) {
     editingId = id || null;
     document.getElementById('modalTitle').textContent = id ? 'POPUPを編集' : 'POPUPを追加';
-    const fields = ['f_location','f_startDate','f_endDate','f_sales','f_days','f_setup','f_customer','f_items','f_memo'];
+    const fields = ['f_eventName','f_location','f_startDate','f_endDate','f_sales','f_days','f_setup','f_customer','f_items','f_memo'];
     if (id) {
       const r = data.find(d => d.id === id);
+      document.getElementById('f_eventName').value = r.eventName || '';
       document.getElementById('f_location').value = r.location || '';
       document.getElementById('f_startDate').value = r.startDate || '';
       document.getElementById('f_endDate').value   = r.endDate   || '';
@@ -487,6 +495,7 @@
   });
 
   async function saveEntry() {
+    const eventName = document.getElementById('f_eventName').value.trim();
     const location  = document.getElementById('f_location').value.trim();
     const startDate = document.getElementById('f_startDate').value;
     const endDate   = document.getElementById('f_endDate').value;
@@ -497,13 +506,13 @@
     const items     = document.getElementById('f_items').value.trim();
     const memo      = document.getElementById('f_memo').value.trim();
 
-    if (!location) { alert('場所・イベント名を入力してください'); return; }
+    if (!eventName) { alert('イベント名を入力してください'); return; }
 
     const saveBtn = document.getElementById('saveBtn');
     saveBtn.disabled = true;
     saveBtn.textContent = '保存中...';
 
-    const entry = { location, startDate, endDate, sales, days, setup, customer, items, memo };
+    const entry = { eventName, location, startDate, endDate, sales, days, setup, customer, items, memo };
     try {
       if (editingId) {
         await postData({ action: 'update', id: editingId, ...entry });
@@ -526,7 +535,7 @@
 
   async function deleteEntry(id) {
     const r = data.find(d => d.id === id);
-    if (!confirm(`「${r.location || 'このPOPUP'}」を削除しますか？`)) return;
+    if (!confirm(`「${r.eventName || r.location || 'このPOPUP'}」を削除しますか？`)) return;
     try {
       await postData({ action: 'delete', id });
       showToast('削除しました');

@@ -213,6 +213,7 @@
 
   <div class="actions">
     <button class="btn btn-primary" onclick="openModal()" id="addBtn">＋ POPUPを追加</button>
+    <button class="btn btn-outline" onclick="openHelp()">？ 使い方</button>
 
     <div class="filter-wrap">
       <input type="text" id="searchInput" placeholder="🔍 場所・備考で検索" oninput="renderTable()">
@@ -249,7 +250,46 @@
 
 <div class="toast" id="toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#2d2d2d;color:#fff;padding:12px 24px;border-radius:8px;font-size:.88rem;transition:transform .3s;z-index:200;"></div>
 
-<!-- モーダル -->
+<!-- 使い方モーダル -->
+<div class="overlay" id="helpOverlay" onclick="closeHelp(event)">
+  <div class="modal" style="max-width:480px;">
+    <h2 style="margin-bottom:20px;">📖 使い方</h2>
+    <div style="display:flex;flex-direction:column;gap:20px;font-size:0.88rem;line-height:1.7;color:#444;">
+
+      <div>
+        <div style="font-weight:700;font-size:0.95rem;margin-bottom:6px;">📦 POPUPを記録する</div>
+        <div>「＋ POPUPを追加」ボタンから、イベント名・場所・開催期間・売上などを入力して保存します。開始日と終了日を入力すると日数が自動で計算されます。</div>
+      </div>
+
+      <div>
+        <div style="font-weight:700;font-size:0.95rem;margin-bottom:6px;">📄 請求書をアップロードする</div>
+        <div>一覧の「📎 追加」ボタンを押すとアップロード画面が開きます。PDFを選択するとGoogleドライブに自動保存され、一覧から開けるようになります。<br><span style="color:#f59e0b;font-size:0.82rem;">※ 初回のみGoogleアカウントの承認が必要です</span></div>
+      </div>
+
+      <div>
+        <div style="font-weight:700;font-size:0.95rem;margin-bottom:6px;">🌐 どこからでも使える</div>
+        <div>データはGoogleスプレッドシートに保存されます。スマホ・PC・別のブラウザ、どこからアクセスしても同じデータが見られます。URLを共有すれば複数人で一緒に使えます。</div>
+      </div>
+
+      <div>
+        <div style="font-weight:700;font-size:0.95rem;margin-bottom:6px;">📊 スプレッドシートで確認</div>
+        <div>右上の「データはスプレッドシートに反映されます」リンクから、元データをいつでも確認・編集できます。</div>
+      </div>
+
+      <div style="background:#f4f4f2;border-radius:8px;padding:14px;font-size:0.82rem;color:#666;">
+        🔗 このページのURL：<br>
+        <span style="font-weight:600;color:#2d2d2d;word-break:break-all;">https://ekaori0117-wq.github.io/popup-manager-2/</span><br>
+        <span style="font-size:0.78rem;">ブックマークやLINEで共有してください</span>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="document.getElementById('helpOverlay').classList.remove('open')">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- メインモーダル -->
 <div class="overlay" id="overlay" onclick="closeOnOverlay(event)">
   <div class="modal">
     <h2 id="modalTitle">POPUPを追加</h2>
@@ -484,6 +524,8 @@
 
   function closeModal() { document.getElementById('overlay').classList.remove('open'); }
   function closeOnOverlay(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
+  function openHelp() { document.getElementById('helpOverlay').classList.add('open'); }
+  function closeHelp(e) { if (e.target === document.getElementById('helpOverlay')) document.getElementById('helpOverlay').classList.remove('open'); }
 
   ['f_startDate','f_endDate'].forEach(id => {
     document.getElementById(id).addEventListener('change', () => {

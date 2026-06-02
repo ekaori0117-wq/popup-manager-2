@@ -280,7 +280,8 @@
       <div style="background:#f4f4f2;border-radius:8px;padding:14px;font-size:0.82rem;color:#666;">
         🔗 このページのURL：<br>
         <span style="font-weight:600;color:#2d2d2d;word-break:break-all;">https://ekaori0117-wq.github.io/popup-manager-2/</span><br>
-        <span style="font-size:0.78rem;">ブックマークやLINEで共有してください</span>
+        <span style="font-size:0.78rem;">ブックマークやLINEで共有してください</span><br>
+        <button onclick="copyUrl()" id="copyBtn" style="margin-top:10px;padding:7px 16px;background:#2d2d2d;color:#fff;border:none;border-radius:6px;font-size:0.8rem;cursor:pointer;">📋 URLをコピー</button>
       </div>
 
     </div>
@@ -526,6 +527,12 @@
   function closeModal() { document.getElementById('overlay').classList.remove('open'); }
   function closeOnOverlay(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
   function openHelp() { document.getElementById('helpOverlay').classList.add('open'); }
+  function copyUrl() {
+    navigator.clipboard.writeText('https://ekaori0117-wq.github.io/popup-manager-2/');
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✅ コピーしました！';
+    setTimeout(() => btn.textContent = '📋 URLをコピー', 2000);
+  }
   function closeHelp(e) { if (e.target === document.getElementById('helpOverlay')) document.getElementById('helpOverlay').classList.remove('open'); }
 
   ['f_startDate','f_endDate'].forEach(id => {

@@ -232,6 +232,7 @@
           <th>1日平均</th>
           <th>設営</th>
           <th>客層 / 売れたもの / メモ</th>
+          <th>請求書</th>
           <th></th>
         </tr>
       </thead>
@@ -426,6 +427,15 @@
         <td class="avg-cell">${avg != null ? formatYen(avg) + '/日' : '-'}</td>
         <td>${setupBadge}</td>
         <td class="memo-cell">${memoHtml || '-'}</td>
+        <td style="white-space:nowrap;">
+          ${r.invoice
+            ? `<a href="${esc(r.invoice)}" target="_blank" class="btn btn-outline" style="padding:5px 12px;font-size:0.78rem;text-decoration:none;">📄 開く</a>`
+            : `<label class="btn btn-outline" style="padding:5px 12px;font-size:0.78rem;cursor:pointer;">
+                📎 追加
+                <input type="file" accept="application/pdf" style="display:none;" onchange="uploadInvoice(event,'${r.id}')">
+               </label>`
+          }
+        </td>
         <td class="action-cell">
           <button class="btn btn-outline" style="padding:5px 12px;font-size:0.78rem;" onclick="editEntry('${r.id}')">編集</button>
           <button class="btn btn-danger" style="padding:5px 10px;font-size:0.78rem;margin-left:4px;" onclick="deleteEntry('${r.id}')">削除</button>
@@ -522,6 +532,33 @@
     } catch(e) {
       showToast('削除に失敗しました');
     }
+  }
+
+  async function uploadInvoice(event, id) {
+    const file = event.target.files[0];
+    if (!file) return;
+    showToast('アップロード中...');
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      const base64 = e.target.result.split(',')[1];
+      try {
+        const res = await postData({
+          action: 'uploadFile',
+          id,
+          fileData: base64,
+          mimeType: file.type,
+          fileName: file.name
+        });
+        if (res.ok) {
+          showToast('請求書をアップロードしました！');
+          await fetchData();
+        }
+      } catch(err) {
+        showToast('アップロードに失敗しました');
+      }
+    };
+    reader.readAsDataURL(file);
   }
 
   function exportCSV() {

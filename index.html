@@ -212,12 +212,14 @@
   </div>
 
   <div class="actions">
-    <button class="btn btn-primary" onclick="openModal()">＋ POPUPを追加</button>
+    <button class="btn btn-primary" onclick="openModal()" id="addBtn">＋ POPUPを追加</button>
     <button class="btn btn-outline" onclick="exportCSV()">CSV書き出し</button>
     <div class="filter-wrap">
       <input type="text" id="searchInput" placeholder="🔍 場所・備考で検索" oninput="renderTable()">
     </div>
   </div>
+
+  <div class="loading-bar" id="loadingBar" style="display:none;">読み込み中...</div>
 
   <div class="table-wrap">
     <table>
@@ -242,6 +244,8 @@
   </div>
 
 </div>
+
+<div class="toast" id="toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#2d2d2d;color:#fff;padding:12px 24px;border-radius:8px;font-size:.88rem;transition:transform .3s;z-index:200;"></div>
 
 <!-- モーダル -->
 <div class="overlay" id="overlay" onclick="closeOnOverlay(event)">
@@ -301,17 +305,48 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal()">キャンセル</button>
-      <button class="btn btn-primary" onclick="saveEntry()">保存する</button>
+      <button class="btn btn-primary" id="saveBtn" onclick="saveEntry()">保存する</button>
     </div>
   </div>
 </div>
 
 <script>
-  const STORAGE_KEY = 'popup_data_v2';
-  let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyD6W77poc7L4LJThIaWMcO_1Df1kCB_tekmd44HcXcU9IBTOEwFNrN5cnRVvb4FeK2/exec';
+
+  let data = [];
   let editingId = null;
   let sortKey = 'startDate';
   let sortDir = -1;
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  function setLoading(on) {
+    document.getElementById('loadingBar').classList.toggle('show', on);
+    document.getElementById('addBtn').disabled = on;
+  }
+
+  async function fetchData() {
+    setLoading(true);
+    try {
+      const res = await fetch(API_URL);
+      data = await res.json();
+    } catch(e) {
+      showToast('データの読み込みに失敗しました');
+    }
+    setLoading(false);
+    updateSummary();
+    renderTable();
+  }
+
+  async function postData(body) {
+    const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(body) });
+    return res.json();
+  }
 
   function calcDays(start, end) {
     if (!start || !end) return null;
@@ -439,7 +474,7 @@
     });
   });
 
-  function saveEntry() {
+  async function saveEntry() {
     const location  = document.getElementById('f_location').value.trim();
     const startDate = document.getElementById('f_startDate').value;
     const endDate   = document.getElementById('f_endDate').value;
@@ -452,29 +487,41 @@
 
     if (!location) { alert('場所・イベント名を入力してください'); return; }
 
+    const saveBtn = document.getElementById('saveBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = '保存中...';
+
     const entry = { location, startDate, endDate, sales, days, setup, customer, items, memo };
-    if (editingId) {
-      Object.assign(data.find(d => d.id === editingId), entry);
-    } else {
-      data.push({ id: Date.now().toString(36), ...entry });
+    try {
+      if (editingId) {
+        await postData({ action: 'update', id: editingId, ...entry });
+        showToast('更新しました！');
+      } else {
+        const id = Date.now().toString(36);
+        await postData({ action: 'add', id, ...entry });
+        showToast('追加しました！');
+      }
+      closeModal();
+      await fetchData();
+    } catch(e) {
+      showToast('保存に失敗しました');
     }
-    save();
-    closeModal();
+    saveBtn.disabled = false;
+    saveBtn.textContent = '保存する';
   }
 
   function editEntry(id) { openModal(id); }
 
-  function deleteEntry(id) {
+  async function deleteEntry(id) {
     const r = data.find(d => d.id === id);
     if (!confirm(`「${r.location || 'このPOPUP'}」を削除しますか？`)) return;
-    data = data.filter(d => d.id !== id);
-    save();
-  }
-
-  function save() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    updateSummary();
-    renderTable();
+    try {
+      await postData({ action: 'delete', id });
+      showToast('削除しました');
+      await fetchData();
+    } catch(e) {
+      showToast('削除に失敗しました');
+    }
   }
 
   function exportCSV() {
@@ -493,8 +540,7 @@
     a.click();
   }
 
-  updateSummary();
-  renderTable();
+  fetchData();
 </script>
 </body>
 </html>

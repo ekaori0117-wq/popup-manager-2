@@ -435,7 +435,7 @@
           ${r.invoice
             ? `<a href="${esc(r.invoice)}" target="_blank" class="btn btn-outline" style="padding:5px 12px;font-size:0.78rem;text-decoration:none;">📄 開く</a>
                <button class="btn btn-outline" style="padding:5px 10px;font-size:0.78rem;margin-left:4px;" onclick="setInvoiceUrl('${r.id}','${esc(r.invoice)}')">🔗</button>`
-            : `<button class="btn btn-outline" style="padding:5px 12px;font-size:0.78rem;" onclick="setInvoiceUrl('${r.id}','')">🔗 URL追加</button>`
+            : `<button class="btn btn-outline" style="padding:5px 12px;font-size:0.78rem;" onclick="openUpload('${r.id}')">📎 追加</button>`
           }
         </td>
         <td class="action-cell">
@@ -534,6 +534,17 @@
     } catch(e) {
       showToast('削除に失敗しました');
     }
+  }
+
+  function openUpload(id) {
+    const popup = window.open(`${API_URL}?page=upload&id=${id}`, 'upload', 'width=420,height=420');
+    window.addEventListener('message', async function handler(e) {
+      if (e.data && e.data.type === 'invoiceUploaded') {
+        window.removeEventListener('message', handler);
+        showToast('請求書を保存しました！');
+        await fetchData();
+      }
+    });
   }
 
   async function setInvoiceUrl(id, current) {

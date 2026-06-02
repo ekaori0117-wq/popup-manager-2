@@ -334,7 +334,7 @@
   async function fetchData() {
     setLoading(true);
     try {
-      const res = await fetch(API_URL);
+      const res = await fetch(API_URL, { redirect: 'follow' });
       data = await res.json();
     } catch(e) {
       showToast('データの読み込みに失敗しました');
@@ -345,7 +345,9 @@
   }
 
   async function postData(body) {
-    const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(body) });
+    const action = body.action;
+    const data = encodeURIComponent(JSON.stringify(body));
+    const res = await fetch(`${API_URL}?action=${action}&data=${data}`, { redirect: 'follow' });
     return res.json();
   }
 
@@ -357,8 +359,10 @@
 
   function formatDate(d) {
     if (!d) return '';
-    const [y, m, day] = d.split('-');
-    return `${y}/${m}/${day}`;
+    const s = String(d).trim();
+    const match = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) return `${match[1]}/${match[2]}/${match[3]}`;
+    return s;
   }
 
   function formatYen(v) {

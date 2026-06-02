@@ -433,11 +433,9 @@
         <td class="memo-cell">${memoHtml || '-'}</td>
         <td style="white-space:nowrap;">
           ${r.invoice
-            ? `<a href="${esc(r.invoice)}" target="_blank" class="btn btn-outline" style="padding:5px 12px;font-size:0.78rem;text-decoration:none;">📄 開く</a>`
-            : `<label class="btn btn-outline" style="padding:5px 12px;font-size:0.78rem;cursor:pointer;">
-                📎 追加
-                <input type="file" accept="application/pdf" style="display:none;" onchange="uploadInvoice(event,'${r.id}')">
-               </label>`
+            ? `<a href="${esc(r.invoice)}" target="_blank" class="btn btn-outline" style="padding:5px 12px;font-size:0.78rem;text-decoration:none;">📄 開く</a>
+               <button class="btn btn-outline" style="padding:5px 10px;font-size:0.78rem;margin-left:4px;" onclick="setInvoiceUrl('${r.id}','${esc(r.invoice)}')">🔗</button>`
+            : `<button class="btn btn-outline" style="padding:5px 12px;font-size:0.78rem;" onclick="setInvoiceUrl('${r.id}','')">🔗 URL追加</button>`
           }
         </td>
         <td class="action-cell">
@@ -538,31 +536,16 @@
     }
   }
 
-  async function uploadInvoice(event, id) {
-    const file = event.target.files[0];
-    if (!file) return;
-    showToast('アップロード中...');
-
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-      const base64 = e.target.result.split(',')[1];
-      try {
-        const res = await postData({
-          action: 'uploadFile',
-          id,
-          fileData: base64,
-          mimeType: file.type,
-          fileName: file.name
-        });
-        if (res.ok) {
-          showToast('請求書をアップロードしました！');
-          await fetchData();
-        }
-      } catch(err) {
-        showToast('アップロードに失敗しました');
-      }
-    };
-    reader.readAsDataURL(file);
+  async function setInvoiceUrl(id, current) {
+    const url = prompt('Googleドライブのリンクをペーストしてください：', current || '');
+    if (url === null) return;
+    try {
+      await postData({ action: 'setInvoice', id, url });
+      showToast('請求書リンクを保存しました！');
+      await fetchData();
+    } catch(err) {
+      showToast('保存に失敗しました');
+    }
   }
 
   function exportCSV() {
